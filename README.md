@@ -1,116 +1,146 @@
 
 # Minimium Necessary to run Kafka
 
-## Overview
 
-**Producer**: Sends messages to a **Topic**.  
-**Broker**: Receives **messages** from the `Producer`, **stores** them in the `Topic`, and **sends** them to the `Consumer`.  
-**Consumer**: Processes, transforms, or sends messages to another Topic, a Database, or an external system (ex: Apache Spark).
-
-This example demonstrates a Kafka setup with two brokers.
+This guide details how to set up and operate **Kafka**, including its main components and practical instructions for creating topics, sending messages, and consuming data.
 
 ---
 
+## **Theoretical Introduction**
 
-1. Start Zookeeper Server 
-    - search on google for **zookeeper image**
-    - https://hub.docker.com/_/zookeeper (official image)
-    - image name: zookeeper
+- **Cluster (Scalability):** Manages a set of brokers in Kafka.
+  - **Zookeeper** or Kafka itself is responsible for managing the cluster.
 
-2. Start Kafka Server
-    - found image name: apache/kafka image
-    
+- **Broker (Storage/Message Management):** 
+  - A Kafka server that receives messages from **producers** and sends them to **consumers**.
+  - Manages topics and retains messages for a configured period.
 
-3. Execute docker-compose file
-sudo docker-compose up --build
-p.s. --build force the reconstruction of the image
+- **Topic (Organization):**
+  - A channel where messages are organized and stored. Topics are managed by brokers.
 
+- **Consumer (Processing):**
+  - Connects to the cluster to read messages and process them. It can send data to other systems (e.g., Spark, databases, or another topic).
 
-4. Acesse o container kafka para ver os scripts
+- **Producer (Sending):**
+  - Creates and sends messages to topics.
 
-Entre no Container: sudo docker exec -it kafka /bin/sh
+### **Important Notes:**
+1. **Zookeeper** defines an **Active Control Broker (AC)**:
+   - Responsible for creating topics, altering partitions, and redistributing leaders.
+   - In case of failure, **Zookeeper** automatically assigns another broker as AC.
+2. **Offset:** Works as an ID for messages.
 
-Navegue até /opt/kafka_2.13-2.8.1/bin/kafka-topics.sh
-cd /opt/kafka_2.13-2.8.1/bin/kafka-topics.sh
+---
 
-P.S. As vezes está em outra pasta... uma dica é usar o comando find / -name "kafka-topics.sh" ou "kafka-topics"
-/usr/bin/ (por exemplo, as vezes está aqui)
+## **Setting Up the Environment**
 
+### **1. Start Zookeeper Server**
+- Search for the official image on Docker Hub: [Zookeeper](https://hub.docker.com/_/zookeeper)
+- Image name: `zookeeper`
 
-liste os scripts disponíveis
-ls
+### **2. Start Kafka Server**
+- Recommended image: `apache/kafka`
 
+### **3. Execute `docker-compose`**
+- Start services using the command:
+  ```bash
+  sudo docker-compose up --build
+  ```
+  - `--build`: Forces the reconstruction of images.
 
-Create topic 
+---
 
+## **Basic Operations in Kafka**
 
-kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic helloworld
-Explicação:
---bootstrap-server localhost:9092: Indica o servidor Kafka ao qual você está se conectando.
---replication-factor 1: Define que o fator de replicação é 1 (apenas um broker, já que você tem um único Kafka rodando).
---partitions 1: Cria o tópico com uma única partição.
---topic helloworld: Nome do tópico que será criado.
+### **4. Access the Kafka Container**
+- Enter the container:
+  ```bash
+  sudo docker exec -it kafka /bin/sh
+  ```
+- Navigate to the Kafka scripts directory:
+  ```bash
+  cd /opt/kafka_2.13-2.8.1/bin/
+  ```
+  - Use `find` to locate scripts if they are in another location:
+    ```bash
+    find / -name "kafka-topics.sh"
+    ```
 
+### **5. Create a Topic**
+- Command to create a topic:
+  ```bash
+  kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic helloworld
+  ```
+  **Explanation of parameters:**
+  - `--bootstrap-server`: Kafka server.
+  - `--replication-factor 1`: Replication factor (1 for a single broker).
+  - `--partitions 1`: Number of partitions.
+  - `--topic helloworld`: Name of the topic.
 
-5. Agora vamos mandar mensagem no topico criado
+### **6. Send Messages**
+- To send messages to the created topic:
+  ```bash
+  kafka-console-producer.sh --topic helloworld --bootstrap-server localhost:9092
+  ```
+  - Write any message and press ENTER to send it.
 
-kafka-console-producer.sh --topic ARTICLES --bootstrap-server localhost:9092
+#### **Messages in <key>:<value> format**
+- Use the following command to include keys and values:
+  ```bash
+  kafka-console-producer.sh --topic helloworld --bootstrap-server localhost:9092 --property parse.key=true --property key.separator=:
+  ```
+  **Example:**
+  ```text
+  article-1:{"title":"Kafka Basics","content":"Introduction to Kafka"}
+  article-2:{"title":"Advanced Kafka","content":"Deep dive into Kafka features"}
+  ```
 
-E agora envie mensagens... Escreva quakquer coisa e aperte ENTER...
+### **7. Consume Messages**
+- Command to consume messages:
+  ```bash
+  kafka-console-consumer.sh --topic helloworld --bootstrap-server localhost:9092 --from-beginning
+  ```
+  **Explanation:**
+  - `--from-beginning`: Reads all messages from the beginning.
 
-Caso queira enviar mensagem no formato <key>:<value> você tem que executar
-kafka-console-producer.sh --topic ARTICLES --bootstrap-server localhost:9092 --property parse.key=true --property key.separator=:
+---
 
+## **Kafka Graphical Interface**
+- Access the graphical interface via the browser at `localhost:8080`.
 
-P.S. Quando você não utiliza as propriedades específicas para a chave (parse.key=true e key.separator), o kafka-console-producer.sh interpreta tudo como o valor da mensagem, ignorando qualquer estrutura de chave.
+### **Note on Volumes:**
+- To avoid issues with persistent data, remove old containers:
+  ```bash
+  docker-compose down --volumes
+  ```
 
-Se quiser enviar mensagens com chave e valor, você deve incluir essas propriedades no comando do produtor. Aqui está um guia para garantir que funcione corretamente:
-ex:
-article-1:{"title":"Kafka Basics","content":"Introduction to Kafka"}
-article-2:{"title":"Advanced Kafka","content":"Deep dive into Kafka features"}
+---
 
+## **Create a Custom Consumer**
+- Install the Python library:
+  ```bash
+  pip install confluent-kafka
+  ```
+- Create a Python script for the consumer.
+- Add the consumer to the `docker-compose` and start the service.
 
-6. para visualizar as mensagens, execute
+---
 
-kafka-console-consumer --topic <TOPIC_NAME> --bootstrap-server localhost:9092 --from-beginning
+## **Testing and Failure Scenarios**
 
+### **Stopping a Broker**
+- To stop a broker:
+  ```bash
+  sudo docker-compose stop kafka-broker-2
+  ```
+  - Observe how messages behave.
 
+### **Restarting the Broker**
+- Restart the broker:
+  ```bash
+  sudo docker-compose up kafka-broker-2
+  ```
 
-7. Visualizar pelo Kafka UI (interface gráfica)
+---
 
-localhost:8080
-
-Nota: Se você não usar volumes locais montados, os dados já estarão no contêiner. Nesse caso, remova os contêineres para forçar a recriação: (As vezes o kafka cai quando usa o kafka ui por causa do volume do ocntainer anterior)
-
-docker-compose down --volumes
-
-
-8. CONSUMIDORES - servem para processar/transform, enviar para outro sistema, ou salvar em um DB as imagens
-
-no exemplo anterior eu mostrei uma maneira de usar um consumer...
-
-kafka-console-consumer --topic <TOPIC_NAME> --bootstrap-server localhost:9092 --from-beginning
-
-Mas nós vamos criar o NOSSO CONSUMER... 
-- Instale a biblioteca: pip install confluent-kafka
-- Crie um Scrip Python
-- Crie um docker container
-- Adicione no seu docker-compose o consumidor
-- Rode o serviço
-
-
-----
-
-Faça um test para parar um Broker no docker
-
-```bash
-sudo docker-compose stop kafka-broker-2
-```
-
-veja como as mensagens se comportam...
-
-Agora ligue novamente o Broker
-
-```bash
-sudo docker-compose up kafka-broker-2
-```
+This manual covers everything from basic theory to practical configurations in Kafka, helping you understand and operate its main components.

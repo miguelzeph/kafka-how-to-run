@@ -1,35 +1,34 @@
 from confluent_kafka import Consumer
 import json
 
-# Configurações do consumidor
+# Consumer configuration
 consumer_conf = {
-    'bootstrap.servers': 'kafka:9092,kafka-broker-2:9093',  # Inclua os dois brokers
+    'bootstrap.servers': 'kafka:9092,kafka-broker-2:9093',  # Include both brokers
     'group.id': 'articles-processor-group',
     'auto.offset.reset': 'earliest'
 }
 
-
 consumer = Consumer(consumer_conf)
 consumer.subscribe(['ARTICLES'])
 
-print("Consumidor de ARTICLES está esperando mensagens...")
+print("Consumer for ARTICLES is waiting for messages...")
 
 try:
     while True:
-        msg = consumer.poll(5.0)  # Espera por 5 segundo
+        msg = consumer.poll(5.0)  # Wait for 5 seconds
         if msg is None:
             continue
         if msg.error():
-            print(f"Erro no consumidor: {msg.error()}")
+            print(f"Consumer error: {msg.error()}")
             continue
 
-        # Decodifica a mensagem
+        # Decode the message
         article = json.loads(msg.value().decode('utf-8'))
-        print(f"Mensagem recebida: {article}")
+        print(f"Message received: {article}")
 
-        # Processa a mensagem (exemplo: adiciona 'processed')
+        # Process the message (example: add 'processed' key)
         article['processed'] = True
-        print(f"Artigo processado: {article}")
+        print(f"Processed article: {article}")
 
 finally:
     consumer.close()
